@@ -1,5 +1,6 @@
 from kafka import KafkaConsumer
 from json import loads
+import os
 import h5py
 import csv
 import datetime
