@@ -3,6 +3,7 @@ import ssl
 from kafka import KafkaProducer
 from json import dumps
 import time
+from random import randrange
     
 # 카프카 서버
 bootstrap_servers = ["localhost:9092"]
@@ -13,21 +14,20 @@ producer = KafkaProducer(bootstrap_servers=bootstrap_servers,
                          value_serializer=lambda x: dumps(x).encode('utf-8'))
 
 # 카프카 토픽
-str_topic_name = 'testBlockchain'
+str_topic_name = 'kiwoom'
 
-def collect_data():
-    uri = 'wss://ws.blockchain.info/inv'
-    ws = websocket.WebSocket(sslopt={"cert_reqs": ssl.CERT_NONE})
-    ws.connect(uri)
-
-    ws.send(dumps({"op": "unconfirmed_sub"}))
+def send_data():
+    test_data = [
+        '000010,1,1,1,1',
+        '000020,2,2,2,2',
+        '000030,3,3,3,3',
+        '000040,4,4,4,4'
+    ]
 
     while True:
-        blockchain_data = ws.recv()
-        print(blockchain_data)
+        time.sleep(3)
+        rand_idx = randrange(4)
+        producer.send(str_topic_name, value=test_data[rand_idx])
+        print('data:', test_data[rand_idx])
 
-        # 카프카 공급자 토픽에 데이터를 보낸다
-        producer.send(str_topic_name, value=blockchain_data)
-        print('data:', blockchain_data)
-
-collect_data()
+send_data()
