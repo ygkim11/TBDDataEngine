@@ -8,7 +8,7 @@ amqp.connect("amqp://localhost", function (error0, connection) {
     if (error1) {
       throw error1;
     }
-    var queue = "tbd_data";
+    var queue = "kiwoom_data";
 
     var msg = "Hello world";
 
