@@ -1,11 +1,7 @@
 from kafka import KafkaConsumer
-from json import loads
 import os
-import h5py
 import csv
 import datetime
-import numpy as np
-import pandas as pd
 
 # 카프카 서버
 bootstrap_servers = ["localhost:9092"]
@@ -32,23 +28,21 @@ Processing method:
 - save as hdf5 file
 """
 
-# Process 1 : save to csv
 today = datetime.datetime.now().strftime('%Y%m%d')
 tmp_path = ".\\tmp"
-gd_path = "G:\\내 드라이브\\TestData"
+gd_path = "G:\내 드라이브\TestData"
 
 for message in consumer:
-    data = loads(message)
-    data_list = data.split(',')
+    data = message.value.decode('utf-8').replace('"', '')
+    data_list = data.split(',')[:-1]
+    print(data_list)
     ticker = data_list[0] # 첫째값이 티커
-    
-    with open(f'{tmp_path}\\{ticker}.csv', 'a') as f:
-        writer = csv.writer(f)
-        writer.writerow(data)
 
-# Process 2 : save to google drive
-for f in os.listdir(tmp_path):
-    ticker = f.split('.')[0]
-    arr = pd.read_csv(f'{tmp_path}\\{f}').to_numpy()
-    hd = h5py.File(f'{gd_path}\\{today}.h5', 'w')
-    hd.create_dataset(ticker, data=arr)
+    filename = f'{tmp_path}\\{ticker}.csv'
+
+    if not os.path.isfile(filename):
+        open(filename, 'w').close()
+
+    with open(filename, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(data_list)
