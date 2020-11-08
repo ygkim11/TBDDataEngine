@@ -1,25 +1,24 @@
 import socketio
-import Handler
+import json
 
 sio = socketio.Client()
 sio.connect('http://localhost:3000')
 
-@sio.on('connect')
-def connect():
-    print('socket connected sending ready')
+@sio.on('upbit')
+def on_receive_data(data):
+    json_data = json.loads(data['data'].decode('utf-8'))
+    print(json_data)
+    # Handler.resolve(data, sio)
+
+if __name__ == '__main__':
     sio.emit('ready', {})
 
-@sio.on('data')
-def on_receive_data(data):
-    Handler.resolve(data, sio)
 
+# class Handler:
+#     def __init__(self):
+#         pass
 
-
-class Handler:
-    def __init__(self):
-        pass
-
-    def resolve(data, sio):
-        buy = buysignal(data)
-        if buy:
-            sio.emit('order', {'amount': 2})
+#     def resolve(data, sio):
+#         buy = buysignal(data)
+#         if buy:
+#             sio.emit('order', {'amount': 2})

@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  tbddataengine_socket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tbddataengine_socket
+    ports:
+      - "3000:3000"
+    networks:
+      - default
+      - tbddataengine
+    restart: always
+
+  tbddataengine_upbit:
+    build:
+      context: .
+      dockerfile: UpbitDockerfile
+    container_name: tbddataengine_upbit
+    networks:
+      - default
+      - tbddataengine
+    restart: always
+
+networks:
+  tbddataengine:
+    driver: bridge

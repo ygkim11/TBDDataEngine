@@ -2,3 +2,4 @@ Pipfile
 node_modules
 package-lock.json
 git_cmds.txt
+.env
