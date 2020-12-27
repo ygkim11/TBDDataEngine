@@ -22,8 +22,11 @@ RABBIT_PASS = os.getenv('RABBIT_PASS', 'guest')
 credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
 conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, credentials=credentials))
 
-kiwoom_channel = conn.channel()
-kiwoom_channel.queue_declare(queue='kiwoom_stocks_data')
+kiwoom_stocks_channel = conn.channel()
+kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
+
+kiwoom_futures_channel = conn.channel()
+kiwoom_futures_channel.queue_declare(queue='kiwoom_futures_data')
 
 class Get_Real_Data(QAxWidget):
     def __init__(self):
@@ -243,7 +246,6 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
 
-
             # data = []
             #
             # data.append(sCode.strip())
@@ -258,8 +260,11 @@ class Get_Real_Data(QAxWidget):
             # data.append(trade_buy_hoga1)
 
             #print(data)
-            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=self.kiwoom_stocks_data[sCode.strip()])
+
+            if sCode.strip() in self.stocks_code:
+                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=self.kiwoom_stocks_data[sCode.strip()])
+            else:
+                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=self.kiwoom_stocks_data[sCode.strip()])
 
 
 
@@ -590,8 +595,12 @@ class Get_Real_Data(QAxWidget):
             # print(tmp_hoga)
             # print(tmp_hoga_etc)
 
-            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=self.kiwoom_stocks_data[sCode.strip()])
+
+            if sCode.strip() in self.stocks_code:
+                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=self.kiwoom_stocks_data[sCode.strip()])
+            else:
+                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=self.kiwoom_stocks_data[sCode.strip()])
+
 
             # hoga_csv = open("./db/real_hoga_data.csv", "a", newline="", encoding="utf8")
             #
