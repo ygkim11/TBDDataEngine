@@ -4,3 +4,5 @@ package-lock.json
 git_cmds.txt
 .env
 .idea
+__pycache__
+*.pyc
