@@ -2,7 +2,7 @@ import socketio
 import json
 
 sio = socketio.Client()
-sio.connect('http://localhost:3000')
+sio.connect('http://108.61.161.152:3000')
 
 @sio.on('upbit')
 def on_receive_data(data):
