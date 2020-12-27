@@ -1,16 +1,20 @@
 import socketio
 import json
 import csv
+import datetime
 
 sio = socketio.Client()
 sio.connect('http://localhost:3000')
 
+drive_location = 'C:\\Users\\simpl\\real_time_data\\upbit\\'
+
 @sio.on('upbit')
 def on_receive_upbit_data(data):
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    file_location = f'{drive_location}{today}.csv'
     json_data = json.loads(data['data'].decode('utf-8'))
-    with open('upbit.csv', 'a') as f:
+    with open(file_location, 'a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow()
         data = [
             json_data['code'],
             json_data['date'],
@@ -84,7 +88,7 @@ def on_receive_upbit_data(data):
             json_data['buy_hoga14_stack'],
             json_data['buy_hoga15_stack']
         ]
-
+        writer.writerow(data)
 
 # if __name__ == '__main__':
 #     sio.emit('ready', {})
