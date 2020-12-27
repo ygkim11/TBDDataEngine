@@ -13,65 +13,47 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-// add more queues later
-const getSendData = (connection) => {
+// RabbitMQ client
+amqp.connect(`amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:12765//`, function (err0, connection) {
+  if (err0) {
+    throw err0;
+  }
+
   connection.createChannel((err1, channel) => {
     if (err1) {
       throw err1;
     }
 
-    const kiwoom_queue = "kiwoom_data";
-    channel.assertQueue(kiwoom_queue, { durable: false });
-    channel.consume(
-      kiwoom_queue,
-      (msg) => {
-        io.emit("kiwoom", { data: msg.content });
-      },
-      {
-        noAck: true,
-      }
-    );
+    io.on('connection', (socket) => {
 
-    const upbit_queue = "upbit_data";
-    channel.assertQueue(upbit_queue, { durable: false });
-    channel.consume(
-      upbit_queue,
-      (msg) => {
-        io.emit("upbit", { data: msg.content });
-      },
-      {
-        noAck: true,
-      }
-    );
+      const kiwoomQueue = "kiwoom_data";
+      channel.assertQueue(kiwoomQueue, { durable: false });
+      channel.consume(
+        kiwoomQueue,
+        (msg) => {
+          io.emit("kiwoom", { data: msg.content });
+        },
+        {
+          noAck: true,
+        }
+      );
+
+      const upbitQueue = "upbit_data";
+      channel.assertQueue(upbitQueue, { durable: false });
+      channel.consume(
+        upbitQueue,
+        (msg) => {
+          io.emit("upbit", { data: msg.content });
+        },
+        {
+          noAck: true,
+        }
+      );
+
+    });
 
   });
-};
 
-// RabbitMQ client
-amqp.connect(`amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:5672//`, function (err0, connection) {
-  if (err0) {
-    throw err0;
-  }
-
-  // Socket.IO client
-  io.on("connection", (socket) => {
-    console.log("socket connected");
-    console.log(socket.id);
-
-    socket.on("ready", (msg) => {
-      console.log("socket is ready");
-      getSendData(connection);
-    });
-
-    socket.on("order", (msg) => {
-      console.log("socket order");
-      console.log(msg);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("socket disconnected");
-    });
-  });
 });
 
 // start server
