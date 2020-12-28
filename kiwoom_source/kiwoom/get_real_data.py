@@ -462,6 +462,7 @@ class Get_Real_Data(QAxWidget):
             ###hoga dict update
             update_hoga_kiwoom_dict = {
                 'code': sCode.strip(),
+                'volume': 0, # 이미 체결 데이터에서 거래량이 보내졌기 때문에 불필요
                 'hoga_date': hoga_date,
                 'timestamp': dt.datetime.now().strftime("%Y%m%d%H%M%S.%f")[:-3],
                 'sell_hoga10': sell_hoga10,
