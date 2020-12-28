@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
@@ -15,12 +16,15 @@ import pika
 
 load_dotenv()
 
-RABBIT_HOST = os.getenv('RABBIT_HOST', 'localhost')
-RABBIT_USER = os.getenv('RABBIT_USER', 'guest')
-RABBIT_PASS = os.getenv('RABBIT_PASS', 'guest')
+REMOTE_RABBIT_HOST = os.getenv('REMOTE_RABBITMQ_HOST', 'localhost')
+REMOTE_RABBIT_USER = os.getenv('REMOTE_RABBITMQ_USER', 'guest')
+REMOTE_RABBIT_PASS = os.getenv('REMOTE_RABBITMQ_PASSWORD', 'guest')
+print(REMOTE_RABBIT_HOST)
+print(REMOTE_RABBIT_USER)
+print(REMOTE_RABBIT_PASS)
 
-credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
-conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, credentials=credentials))
+credentials = pika.PlainCredentials(username=REMOTE_RABBIT_USER, password=REMOTE_RABBIT_PASS)
+conn = pika.BlockingConnection(pika.ConnectionParameters(host=REMOTE_RABBIT_HOST, credentials=credentials))
 
 kiwoom_channel = conn.channel()
 kiwoom_channel.queue_declare(queue='kiwoom_stocks_data')
@@ -189,14 +193,6 @@ class Get_Real_Data(QAxWidget):
                                  self.realType.REALTYPE[sRealType]["현재가"])  # +(-) 2500 string 형태
             current_price = str(abs(int(current_price)))
 
-            # c = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-            #                      self.realType.REALTYPE[sRealType]["전일대비"])  # -(+)
-            # c = abs(int(c))
-            #
-            # d = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-            #                      self.realType.REALTYPE[sRealType]["등락율"])  # -(+)
-            # d = float(d)
-
             trade_sell_hoga1 = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["(최우선)매도호가"])  # -(+)
             trade_sell_hoga1 = abs(int(trade_sell_hoga1))
@@ -225,11 +221,10 @@ class Get_Real_Data(QAxWidget):
                                  self.realType.REALTYPE[sRealType]["저가"])  # -(+)
             low = str(abs(int(low)))
 
-
             ###Trade dict update
             update_trade_kiwoom_dict = {
                 'code': sCode.strip(),
-                'trade_date': trade_date.strip,
+                'trade_date': trade_date.strip(),
                 'timestamp': dt.datetime.now().strftime("%Y%m%d%H%M%S.%f")[:-3],
                 'current_price': current_price,
                 'open_price': open_price,
@@ -243,35 +238,9 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
 
-
-            # data = []
-            #
-            # data.append(sCode.strip())
-            # data.append(date.strip())
-            # data.append(current_price)
-            # data.append(open_price)
-            # data.append(high)
-            # data.append(low)
-            # data.append(volume)
-            # data.append(cum_volume)
-            # data.append(trade_sell_hoga1)
-            # data.append(trade_buy_hoga1)
-
-            #print(data)
             routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=self.kiwoom_stocks_data[sCode.strip()])
-
-
-
-            # tick_csv = open("./db/real_tick_data.csv", "a", newline="", encoding="utf8")
-            #
-            # with tick_csv:
-            #     # self.header = [['date', 'close', 'open', 'high', 'low', 'volume', 'trade_volume', 'sujung_ratio', 'sujung_gubun']]
-            #     write = csv.writer(tick_csv)
-            #     # write.writerows(self.header)
-            #     write.writerows([data])
-            #
-            # tick_csv.close()
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
 
 
         elif sRealType == "주식호가잔량":
@@ -471,7 +440,6 @@ class Get_Real_Data(QAxWidget):
                                                     self.realType.REALTYPE[sRealType]["매도비율"])
             ratio_sell_hoga_stack = abs(float(ratio_sell_hoga_stack))
 
-
             ###hoga dict update
             update_hoga_kiwoom_dict = {
                 'code': sCode.strip(),
@@ -527,81 +495,9 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_hoga_kiwoom_dict)
 
-
-            # ###데이터 정리
-            #
-            # tmp_hoga = []
-            # tmp_hoga_etc = []
-            #
-            # tmp_hoga.append(sCode.strip())
-            # tmp_hoga.append(hoga_date)
-            # #호가
-            # tmp_hoga.append(sell_hoga10)
-            # tmp_hoga.append(sell_hoga9)
-            # tmp_hoga.append(sell_hoga8)
-            # tmp_hoga.append(sell_hoga7)
-            # tmp_hoga.append(sell_hoga6)
-            # tmp_hoga.append(sell_hoga5)
-            # tmp_hoga.append(sell_hoga4)
-            # tmp_hoga.append(sell_hoga3)
-            # tmp_hoga.append(sell_hoga2)
-            # tmp_hoga.append(sell_hoga1)
-            # tmp_hoga.append(buy_hoga1)
-            # tmp_hoga.append(buy_hoga2)
-            # tmp_hoga.append(buy_hoga3)
-            # tmp_hoga.append(buy_hoga4)
-            # tmp_hoga.append(buy_hoga5)
-            # tmp_hoga.append(buy_hoga6)
-            # tmp_hoga.append(buy_hoga7)
-            # tmp_hoga.append(buy_hoga8)
-            # tmp_hoga.append(buy_hoga9)
-            # tmp_hoga.append(buy_hoga10)
-            # #호가잔량
-            # tmp_hoga.append(sell_hoga10_stack)
-            # tmp_hoga.append(sell_hoga9_stack)
-            # tmp_hoga.append(sell_hoga8_stack)
-            # tmp_hoga.append(sell_hoga7_stack)
-            # tmp_hoga.append(sell_hoga6_stack)
-            # tmp_hoga.append(sell_hoga5_stack)
-            # tmp_hoga.append(sell_hoga4_stack)
-            # tmp_hoga.append(sell_hoga3_stack)
-            # tmp_hoga.append(sell_hoga2_stack)
-            # tmp_hoga.append(sell_hoga1_stack)
-            # tmp_hoga.append(buy_hoga1_stack)
-            # tmp_hoga.append(buy_hoga2_stack)
-            # tmp_hoga.append(buy_hoga3_stack)
-            # tmp_hoga.append(buy_hoga4_stack)
-            # tmp_hoga.append(buy_hoga5_stack)
-            # tmp_hoga.append(buy_hoga6_stack)
-            # tmp_hoga.append(buy_hoga7_stack)
-            # tmp_hoga.append(buy_hoga8_stack)
-            # tmp_hoga.append(buy_hoga9_stack)
-            # tmp_hoga.append(buy_hoga10_stack)
-            #
-            # #Etc.
-            # tmp_hoga_etc.append(sCode.strip())
-            # tmp_hoga_etc.append(total_buy_hoga_stack)
-            # tmp_hoga_etc.append(total_sell_hoga_stack)
-            # tmp_hoga_etc.append(net_buy_hoga_stack)
-            # tmp_hoga_etc.append(net_sell_hoga_stack)
-            # tmp_hoga_etc.append(ratio_buy_hoga_stack)
-            # tmp_hoga_etc.append(ratio_sell_hoga_stack)
-
-            # print(tmp_hoga)
-            # print(tmp_hoga_etc)
-
             routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=self.kiwoom_stocks_data[sCode.strip()])
-
-            # hoga_csv = open("./db/real_hoga_data.csv", "a", newline="", encoding="utf8")
-            #
-            # with hoga_csv:
-            #     # self.header = [['date', 'close', 'open', 'high', 'low', 'volume', 'trade_volume', 'sujung_ratio', 'sujung_gubun']]
-            #     write = csv.writer(hoga_csv)
-            #     # write.writerows(self.header)
-            #     write.writerows([tmp_hoga])
-            #
-            # # hoga_csv.close()
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
 
 
     def get_code_list_by_market(self, market_code):
