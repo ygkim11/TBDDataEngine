@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
@@ -35,7 +36,7 @@ class Get_Real_Data(QAxWidget):
 
         print("#"*6 , "Kiwoom Class initiated" , "#"*6)
 
-        # self.sample_stock_code = ["245620"]  # 삼성 , edgc, 현대공업, 두산솔루스
+        # self.stocks_futures_code = ["111R1000"]  # 삼성 선물 example
         # self.sample_stock_code_2 = ["005930", "245620", "170030", "336370"]  # 삼성 , edgc, 현대공업, 두산솔루스
         self.kiwoom_stocks_data = {}
 
@@ -184,7 +185,7 @@ class Get_Real_Data(QAxWidget):
                 print("3시 30분 장 종료!")
 
 
-        elif sRealType == "주식체결":
+        elif (sRealType == "주식체결") | (sRealType == "선물시세"):
             trade_date = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["체결시간"])  # hhmmss string 형태
 
@@ -232,7 +233,7 @@ class Get_Real_Data(QAxWidget):
             ###Trade dict update
             update_trade_kiwoom_dict = {
                 'code': sCode.strip(),
-                'trade_date': trade_date.strip,
+                'trade_date': trade_date.strip(),
                 'timestamp': dt.datetime.now().strftime("%Y%m%d%H%M%S.%f")[:-3],
                 'current_price': current_price,
                 'open_price': open_price,
@@ -261,10 +262,13 @@ class Get_Real_Data(QAxWidget):
 
             #print(data)
 
-            if sCode.strip() in self.stocks_code:
-                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=self.kiwoom_stocks_data[sCode.strip()])
-            else:
-                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=self.kiwoom_stocks_data[sCode.strip()])
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            # print(json_data)
+
+            # if sCode.strip() in self.stocks_code:
+            #     kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
+            # else:
+            #     kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
 
 
 
@@ -279,7 +283,7 @@ class Get_Real_Data(QAxWidget):
             # tick_csv.close()
 
 
-        elif sRealType == "주식호가잔량":
+        elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") :
             hoga_date = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["호가시간"])
 
@@ -451,30 +455,39 @@ class Get_Real_Data(QAxWidget):
             buy_hoga10_stack = abs(int(buy_hoga10_stack))
             
 
-            ######etc
-            total_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-                                                self.realType.REALTYPE[sRealType]["매수호가총잔량"])
-            total_buy_hoga_stack = abs(int(total_buy_hoga_stack))
+            #####etc
+            if sRealType == "주식선물호가잔량":
+                total_buy_hoga_stack = None
+                total_sell_hoga_stack = None
+                net_buy_hoga_stack = None
+                net_sell_hoga_stack = None
+                ratio_buy_hoga_stack = None
+                ratio_sell_hoga_stack = None
 
-            total_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+            else:
+                total_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+                                                    self.realType.REALTYPE[sRealType]["매수호가총잔량"])
+                total_buy_hoga_stack = abs(int(total_buy_hoga_stack))
+
+                total_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                                     self.realType.REALTYPE[sRealType]["매도호가총잔량"])
-            total_sell_hoga_stack = abs(int(total_sell_hoga_stack))
+                total_sell_hoga_stack = abs(int(total_sell_hoga_stack))
 
-            net_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-                                                     self.realType.REALTYPE[sRealType]["순매수잔량"])
-            net_buy_hoga_stack = abs(int(net_buy_hoga_stack))
+                net_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+                                              self.realType.REALTYPE[sRealType]["순매수잔량"])
+                net_buy_hoga_stack = abs(int(net_buy_hoga_stack))
 
-            net_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-                                                  self.realType.REALTYPE[sRealType]["순매도잔량"])
-            net_sell_hoga_stack = abs(int(net_sell_hoga_stack))
+                net_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+                                              self.realType.REALTYPE[sRealType]["순매도잔량"])
+                net_sell_hoga_stack = abs(int(net_sell_hoga_stack))
 
-            ratio_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-                                                   self.realType.REALTYPE[sRealType]["매수비율"])
-            ratio_buy_hoga_stack = abs(float(ratio_buy_hoga_stack))
+                ratio_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+                                                       self.realType.REALTYPE[sRealType]["매수비율"])
+                ratio_buy_hoga_stack = abs(float(ratio_buy_hoga_stack))
 
-            ratio_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-                                                    self.realType.REALTYPE[sRealType]["매도비율"])
-            ratio_sell_hoga_stack = abs(float(ratio_sell_hoga_stack))
+                ratio_sell_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
+                                                        self.realType.REALTYPE[sRealType]["매도비율"])
+                ratio_sell_hoga_stack = abs(float(ratio_sell_hoga_stack))
 
 
             ###hoga dict update
@@ -595,11 +608,12 @@ class Get_Real_Data(QAxWidget):
             # print(tmp_hoga)
             # print(tmp_hoga_etc)
 
-
-            if sCode.strip() in self.stocks_code:
-                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=self.kiwoom_stocks_data[sCode.strip()])
-            else:
-                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=self.kiwoom_stocks_data[sCode.strip()])
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            print(json_data)
+            # if sCode.strip() in self.stocks_code:
+            #     kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
+            # else:
+            #     kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
 
 
             # hoga_csv = open("./db/real_hoga_data.csv", "a", newline="", encoding="utf8")
