@@ -1,3 +1,4 @@
+// RabbitMQ로 데이터는 보내지만, csv 저장은 내부 파일에서 바로 실행하기
 const WebSocket = require('ws');
 const amqp = require("amqplib/callback_api");
 

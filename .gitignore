@@ -6,3 +6,5 @@ git_cmds.txt
 .idea
 __pycache__
 *.pyc
+venv
+
