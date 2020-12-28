@@ -241,35 +241,12 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
 
-<<<<<<< HEAD
-            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
             json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
-=======
-            # data = []
-            #
-            # data.append(sCode.strip())
-            # data.append(date.strip())
-            # data.append(current_price)
-            # data.append(open_price)
-            # data.append(high)
-            # data.append(low)
-            # data.append(volume)
-            # data.append(cum_volume)
-            # data.append(trade_sell_hoga1)
-            # data.append(trade_buy_hoga1)
 
-            #print(data)
-
-            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-            # print(json_data)
-
-            # if sCode.strip() in self.stocks_code:
-            #     kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
-            # else:
-            #     kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
-
-
+            if sCode.strip() in self.stocks_code:
+                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
+            else:
+                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
 
             # tick_csv = open("./db/real_tick_data.csv", "a", newline="", encoding="utf8")
             #
@@ -280,7 +257,6 @@ class Get_Real_Data(QAxWidget):
             #     write.writerows([data])
             #
             # tick_csv.close()
->>>>>>> 0c051e8bffd7ecb6eff6e032b8f1380a91542df8
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") :
@@ -463,7 +439,6 @@ class Get_Real_Data(QAxWidget):
                 net_sell_hoga_stack = None
                 ratio_buy_hoga_stack = None
                 ratio_sell_hoga_stack = None
-
             else:
                 total_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                                     self.realType.REALTYPE[sRealType]["매수호가총잔량"])
@@ -544,81 +519,12 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_hoga_kiwoom_dict)
 
-<<<<<<< HEAD
-            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
             json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
-=======
 
-            # ###데이터 정리
-            #
-            # tmp_hoga = []
-            # tmp_hoga_etc = []
-            #
-            # tmp_hoga.append(sCode.strip())
-            # tmp_hoga.append(hoga_date)
-            # #호가
-            # tmp_hoga.append(sell_hoga10)
-            # tmp_hoga.append(sell_hoga9)
-            # tmp_hoga.append(sell_hoga8)
-            # tmp_hoga.append(sell_hoga7)
-            # tmp_hoga.append(sell_hoga6)
-            # tmp_hoga.append(sell_hoga5)
-            # tmp_hoga.append(sell_hoga4)
-            # tmp_hoga.append(sell_hoga3)
-            # tmp_hoga.append(sell_hoga2)
-            # tmp_hoga.append(sell_hoga1)
-            # tmp_hoga.append(buy_hoga1)
-            # tmp_hoga.append(buy_hoga2)
-            # tmp_hoga.append(buy_hoga3)
-            # tmp_hoga.append(buy_hoga4)
-            # tmp_hoga.append(buy_hoga5)
-            # tmp_hoga.append(buy_hoga6)
-            # tmp_hoga.append(buy_hoga7)
-            # tmp_hoga.append(buy_hoga8)
-            # tmp_hoga.append(buy_hoga9)
-            # tmp_hoga.append(buy_hoga10)
-            # #호가잔량
-            # tmp_hoga.append(sell_hoga10_stack)
-            # tmp_hoga.append(sell_hoga9_stack)
-            # tmp_hoga.append(sell_hoga8_stack)
-            # tmp_hoga.append(sell_hoga7_stack)
-            # tmp_hoga.append(sell_hoga6_stack)
-            # tmp_hoga.append(sell_hoga5_stack)
-            # tmp_hoga.append(sell_hoga4_stack)
-            # tmp_hoga.append(sell_hoga3_stack)
-            # tmp_hoga.append(sell_hoga2_stack)
-            # tmp_hoga.append(sell_hoga1_stack)
-            # tmp_hoga.append(buy_hoga1_stack)
-            # tmp_hoga.append(buy_hoga2_stack)
-            # tmp_hoga.append(buy_hoga3_stack)
-            # tmp_hoga.append(buy_hoga4_stack)
-            # tmp_hoga.append(buy_hoga5_stack)
-            # tmp_hoga.append(buy_hoga6_stack)
-            # tmp_hoga.append(buy_hoga7_stack)
-            # tmp_hoga.append(buy_hoga8_stack)
-            # tmp_hoga.append(buy_hoga9_stack)
-            # tmp_hoga.append(buy_hoga10_stack)
-            #
-            # #Etc.
-            # tmp_hoga_etc.append(sCode.strip())
-            # tmp_hoga_etc.append(total_buy_hoga_stack)
-            # tmp_hoga_etc.append(total_sell_hoga_stack)
-            # tmp_hoga_etc.append(net_buy_hoga_stack)
-            # tmp_hoga_etc.append(net_sell_hoga_stack)
-            # tmp_hoga_etc.append(ratio_buy_hoga_stack)
-            # tmp_hoga_etc.append(ratio_sell_hoga_stack)
-
-            # print(tmp_hoga)
-            # print(tmp_hoga_etc)
-
-            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-            print(json_data)
-            # if sCode.strip() in self.stocks_code:
-            #     kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
-            # else:
-            #     kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
-
+            if sCode.strip() in self.stocks_code:
+                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
+            else:
+                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
 
             # hoga_csv = open("./db/real_hoga_data.csv", "a", newline="", encoding="utf8")
             #
@@ -629,8 +535,6 @@ class Get_Real_Data(QAxWidget):
             #     write.writerows([tmp_hoga])
             #
             # # hoga_csv.close()
->>>>>>> 0c051e8bffd7ecb6eff6e032b8f1380a91542df8
-
 
     def get_code_list_by_market(self, market_code):
         '''
