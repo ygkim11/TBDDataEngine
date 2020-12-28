@@ -4,9 +4,9 @@ import json
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
-from config.errorCode_prac import *
+from kiwoom_source.config.errorCode_prac import *
 from PyQt5.QtTest import *
-from config.kiwoomType_prac import *
+from kiwoom_source.config.kiwoomType_prac import *
 import csv
 import datetime as dt
 import numpy as np
@@ -19,9 +19,6 @@ load_dotenv()
 REMOTE_RABBIT_HOST = os.getenv('REMOTE_RABBITMQ_HOST', 'localhost')
 REMOTE_RABBIT_USER = os.getenv('REMOTE_RABBITMQ_USER', 'guest')
 REMOTE_RABBIT_PASS = os.getenv('REMOTE_RABBITMQ_PASSWORD', 'guest')
-print(REMOTE_RABBIT_HOST)
-print(REMOTE_RABBIT_USER)
-print(REMOTE_RABBIT_PASS)
 
 credentials = pika.PlainCredentials(username=REMOTE_RABBIT_USER, password=REMOTE_RABBIT_PASS)
 conn = pika.BlockingConnection(pika.ConnectionParameters(host=REMOTE_RABBIT_HOST, credentials=credentials))
@@ -61,6 +58,7 @@ class Get_Real_Data(QAxWidget):
         self.stocks_code = self.get_code_list_by_market(0) + self.get_code_list_by_market(10)
         self.futures_code = self.get_futures_code_list("") #blank = 전 종목
         self.stocks_futures_code = self.stocks_code + self.futures_code
+        print(self.stocks_futures_code)
 
 
         #Base Dict 생성
@@ -68,7 +66,7 @@ class Get_Real_Data(QAxWidget):
             self.kiwoom_stocks_data[code] = {
                 'code': None,
                 'trade_date': None,
-                'timestamp' : None,
+                'timestamp': None,
                 'current_price': None,
                 'open_price': None,
                 'high': None,
@@ -173,7 +171,7 @@ class Get_Real_Data(QAxWidget):
 
 
     def realdata_slot(self, sCode, sRealType, sRealData):
-
+        cnt = 0
         if sRealType == "장시작시간":
             fid = self.realType.REALTYPE[sRealType]['장운영구분']
             value = self.dynamicCall("GetCommRealData(QString, int)", sCode, fid)
@@ -536,6 +534,8 @@ class Get_Real_Data(QAxWidget):
             #
             # # hoga_csv.close()
 
+            cnt += 1
+
     def get_code_list_by_market(self, market_code):
         '''
         종목코드 반환  (개발가이드 > 기타함수> 종목정보관련함수)
@@ -567,6 +567,9 @@ class Get_Real_Data(QAxWidget):
             total_fu_code.append(tmp)
 
         total_fu_code = list(map(lambda x: x[:3], total_fu_code)) #더 원월물까지 포함하고 싶으면 3을 바꾸면됨
-        total_fu_code = np.array(total_fu_code).reshape(1,-1)[0].tolist()
-        # total_fu_code = li
-        return total_fu_code
+
+        flatten_fu_code = []
+        for fu_code in total_fu_code:
+            flatten_fu_code = flatten_fu_code + fu_code
+
+        return flatten_fu_code

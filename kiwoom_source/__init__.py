@@ -1,4 +1,4 @@
-from kiwoom.get_real_data import *
+from kiwoom_source.kiwoom.get_real_data import *
 import sys
 from PyQt5.QtWidgets import *
 
