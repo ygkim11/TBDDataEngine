@@ -4,12 +4,13 @@ import json
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
-from kiwoom_source.config.errorCode_prac import *
+from config.errorCode_prac import *
 from PyQt5.QtTest import *
-from kiwoom_source.config.kiwoomType_prac import *
+from config.kiwoomType_prac import *
 import csv
 import datetime as dt
 import numpy as np
+from kiwoom.save_csv import save_kiwoom_stocks_data_to_csv, save_kiwoom_futures_data_to_csv
 
 from dotenv import load_dotenv
 import pika
@@ -20,8 +21,13 @@ REMOTE_RABBIT_HOST = os.getenv('REMOTE_RABBITMQ_HOST', 'localhost')
 REMOTE_RABBIT_USER = os.getenv('REMOTE_RABBITMQ_USER', 'guest')
 REMOTE_RABBIT_PASS = os.getenv('REMOTE_RABBITMQ_PASSWORD', 'guest')
 
-credentials = pika.PlainCredentials(username=REMOTE_RABBIT_USER, password=REMOTE_RABBIT_PASS)
-conn = pika.BlockingConnection(pika.ConnectionParameters(host=REMOTE_RABBIT_HOST, credentials=credentials))
+RABBIT_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+RABBIT_PORT = os.getenv('RABBITMQ_PORT', 'localhost')
+RABBIT_USER = os.getenv('RABBITMQ_USER', 'guest')
+RABBIT_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
+
+credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
+conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
 
 kiwoom_stocks_channel = conn.channel()
 kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
@@ -171,7 +177,6 @@ class Get_Real_Data(QAxWidget):
 
 
     def realdata_slot(self, sCode, sRealType, sRealData):
-        cnt = 0
         if sRealType == "장시작시간":
             fid = self.realType.REALTYPE[sRealType]['장운영구분']
             value = self.dynamicCall("GetCommRealData(QString, int)", sCode, fid)
@@ -242,19 +247,11 @@ class Get_Real_Data(QAxWidget):
             json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
 
             if sCode.strip() in self.stocks_code:
+                save_kiwoom_stocks_data_to_csv(json_data)
                 kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
             else:
+                save_kiwoom_futures_data_to_csv(json_data)
                 kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
-
-            # tick_csv = open("./db/real_tick_data.csv", "a", newline="", encoding="utf8")
-            #
-            # with tick_csv:
-            #     # self.header = [['date', 'close', 'open', 'high', 'low', 'volume', 'trade_volume', 'sujung_ratio', 'sujung_gubun']]
-            #     write = csv.writer(tick_csv)
-            #     # write.writerows(self.header)
-            #     write.writerows([data])
-            #
-            # tick_csv.close()
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") :
@@ -520,21 +517,11 @@ class Get_Real_Data(QAxWidget):
             json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
 
             if sCode.strip() in self.stocks_code:
+                save_kiwoom_stocks_data_to_csv(json_data)
                 kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
             else:
+                save_kiwoom_futures_data_to_csv(json_data)
                 kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
-
-            # hoga_csv = open("./db/real_hoga_data.csv", "a", newline="", encoding="utf8")
-            #
-            # with hoga_csv:
-            #     # self.header = [['date', 'close', 'open', 'high', 'low', 'volume', 'trade_volume', 'sujung_ratio', 'sujung_gubun']]
-            #     write = csv.writer(hoga_csv)
-            #     # write.writerows(self.header)
-            #     write.writerows([tmp_hoga])
-            #
-            # # hoga_csv.close()
-
-            cnt += 1
 
     def get_code_list_by_market(self, market_code):
         '''

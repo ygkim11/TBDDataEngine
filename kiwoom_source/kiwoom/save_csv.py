@@ -1,17 +1,12 @@
 import os
-import socketio
 import json
 import csv
 import datetime
 
-sio = socketio.Client()
-sio.connect('http://localhost:3001')
-
 stocks_drive_location = 'C:\\Users\\simpl\\real_time_data\\kiwoom_stocks\\'
 futures_drive_location = 'C:\\Users\\simpl\\real_time_data\\kiwoom_futures\\'
 
-@sio.on('kiwoom_stocks')
-def on_receive_kiwoom_stocks_data(data):
+def save_kiwoom_stocks_data_to_csv(data):
     today = datetime.datetime.now()
     folder_name = today.strftime('%Y-%m-%d')
     file_name = today.strftime('%Y-%m-%d_%H')
@@ -19,7 +14,7 @@ def on_receive_kiwoom_stocks_data(data):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     file_location = f'{dirname}\\{file_name}.csv'
-    json_data = json.loads(data['data'].decode('utf-8'))
+    json_data = json.loads(data)
     with open(file_location, 'a', newline='') as f:
         writer = csv.writer(f)
         data = [
@@ -84,9 +79,7 @@ def on_receive_kiwoom_stocks_data(data):
         ]
         writer.writerow(data)
 
-
-@sio.on('kiwoom_futures')
-def on_receive_kiwoom_futures_data(data):
+def save_kiwoom_futures_data_to_csv(data):
     today = datetime.datetime.now()
     folder_name = today.strftime('%Y-%m-%d')
     file_name = today.strftime('%Y-%m-%d_%H')
@@ -94,7 +87,7 @@ def on_receive_kiwoom_futures_data(data):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     file_location = f'{dirname}\\{file_name}.csv'
-    json_data = json.loads(data['data'].decode('utf-8'))
+    json_data = json.loads(data)
     with open(file_location, 'a', newline='') as f:
         writer = csv.writer(f)
         data = [
