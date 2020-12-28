@@ -16,12 +16,15 @@ import pika
 
 load_dotenv()
 
-RABBIT_HOST = os.getenv('RABBIT_HOST', 'localhost')
-RABBIT_USER = os.getenv('RABBIT_USER', 'guest')
-RABBIT_PASS = os.getenv('RABBIT_PASS', 'guest')
+REMOTE_RABBIT_HOST = os.getenv('REMOTE_RABBITMQ_HOST', 'localhost')
+REMOTE_RABBIT_USER = os.getenv('REMOTE_RABBITMQ_USER', 'guest')
+REMOTE_RABBIT_PASS = os.getenv('REMOTE_RABBITMQ_PASSWORD', 'guest')
+print(REMOTE_RABBIT_HOST)
+print(REMOTE_RABBIT_USER)
+print(REMOTE_RABBIT_PASS)
 
-credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
-conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, credentials=credentials))
+credentials = pika.PlainCredentials(username=REMOTE_RABBIT_USER, password=REMOTE_RABBIT_PASS)
+conn = pika.BlockingConnection(pika.ConnectionParameters(host=REMOTE_RABBIT_HOST, credentials=credentials))
 
 kiwoom_stocks_channel = conn.channel()
 kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
@@ -193,14 +196,6 @@ class Get_Real_Data(QAxWidget):
                                  self.realType.REALTYPE[sRealType]["현재가"])  # +(-) 2500 string 형태
             current_price = str(abs(int(current_price)))
 
-            # c = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-            #                      self.realType.REALTYPE[sRealType]["전일대비"])  # -(+)
-            # c = abs(int(c))
-            #
-            # d = self.dynamicCall("GetCommRealData(QString, int)", sCode,
-            #                      self.realType.REALTYPE[sRealType]["등락율"])  # -(+)
-            # d = float(d)
-
             trade_sell_hoga1 = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["(최우선)매도호가"])  # -(+)
             trade_sell_hoga1 = abs(int(trade_sell_hoga1))
@@ -229,7 +224,6 @@ class Get_Real_Data(QAxWidget):
                                  self.realType.REALTYPE[sRealType]["저가"])  # -(+)
             low = str(abs(int(low)))
 
-
             ###Trade dict update
             update_trade_kiwoom_dict = {
                 'code': sCode.strip(),
@@ -247,6 +241,11 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
 
+<<<<<<< HEAD
+            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
+=======
             # data = []
             #
             # data.append(sCode.strip())
@@ -281,6 +280,7 @@ class Get_Real_Data(QAxWidget):
             #     write.writerows([data])
             #
             # tick_csv.close()
+>>>>>>> 0c051e8bffd7ecb6eff6e032b8f1380a91542df8
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") :
@@ -489,7 +489,6 @@ class Get_Real_Data(QAxWidget):
                                                         self.realType.REALTYPE[sRealType]["매도비율"])
                 ratio_sell_hoga_stack = abs(float(ratio_sell_hoga_stack))
 
-
             ###hoga dict update
             update_hoga_kiwoom_dict = {
                 'code': sCode.strip(),
@@ -545,6 +544,11 @@ class Get_Real_Data(QAxWidget):
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_hoga_kiwoom_dict)
 
+<<<<<<< HEAD
+            routing_key = 'kiwoom_stocks_data' if sCode.strip() in self.stocks_code else 'kiwoom_futures_data'
+            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
+            kiwoom_channel.basic_publish(exchange='', routing_key=routing_key, body=json_data)
+=======
 
             # ###데이터 정리
             #
@@ -625,6 +629,7 @@ class Get_Real_Data(QAxWidget):
             #     write.writerows([tmp_hoga])
             #
             # # hoga_csv.close()
+>>>>>>> 0c051e8bffd7ecb6eff6e032b8f1380a91542df8
 
 
     def get_code_list_by_market(self, market_code):
