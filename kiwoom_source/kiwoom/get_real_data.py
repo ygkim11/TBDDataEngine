@@ -36,11 +36,24 @@ RABBIT_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
 credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
 conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
 
-kiwoom_stocks_channel = conn.channel()
-kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
+# kiwoom_stocks_channel = conn.channel()
+# kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
 
 kiwoom_futures_channel = conn.channel()
 kiwoom_futures_channel.queue_declare(queue='kiwoom_futures_data')
+
+kospi_a_channel = conn.channel()
+kospi_a_channel.queue_declare(queue='kiwoom_kospi_a_stocks_data')
+
+kospi_b_channel = conn.channel()
+kospi_b_channel.queue_declare(queue='kiwoom_kospi_b_stocks_data')
+
+kosdaq_a_channel = conn.channel()
+kosdaq_a_channel.queue_declare(queue='kiwoom_kosdaq_a_stocks_data')
+
+kosdaq_b_channel = conn.channel()
+kosdaq_b_channel.queue_declare(queue='kiwoom_kosdaq_b_stocks_data')
+
 
 class Get_Real_Data(QAxWidget):
     def __init__(self):
@@ -68,11 +81,17 @@ class Get_Real_Data(QAxWidget):
         self.screen_real_stock = "5000"
         self.screen_start_stop_real = "1000"
 
-        self.stocks_code = self.get_code_list_by_market(0) + self.get_code_list_by_market(10)
+        self.kospi_list = self.get_code_list_by_market(0)
+        self.kosdaq_list = self.get_code_list_by_market(10)
+
+        self.kospi_a = self.kospi_list[:len(self.kospi_list)//2]
+        self.kospi_b = self.kospi_list[len(self.kospi_list)//2:]
+        self.kosdaq_a = self.kospi_list[:len(self.kosdaq_list)//2]
+        self.kosdaq_b = self.kospi_list[len(self.kosdaq_list)//2:]
+
+        self.stocks_code = self.kospi_list + self.kosdaq_list
         self.futures_code = self.get_futures_code_list("") #blank = 전 종목
         self.stocks_futures_code = self.stocks_code + self.futures_code
-
-
 
         #Base Dict 생성
         for code in self.stocks_futures_code:
@@ -160,6 +179,28 @@ class Get_Real_Data(QAxWidget):
 
             stock_cnt += 1
 
+    def send_to_rabbitmq(self, code, data):
+        queue = None
+        routing_key = ''
+
+        if code in self.kospi_a:
+            queue = kospi_a_channel
+            routing_key = 'kiwoom_kospi_a_stocks_data'
+        elif code in self.kospi_b:
+            queue = kospi_b_channel
+            routing_key = 'kiwoom_kospi_b_stocks_data'
+        elif code in self.kosdaq_a:
+            queue = kosdaq_a_channel
+            routing_key = 'kiwoom_kosdaq_a_stocks_data'
+        elif code in self.kosdaq_b:
+            queue = kosdaq_b_channel
+            routing_key = 'kiwoom_kosdaq_b_stocks_data'
+        elif code in self.futures_code:
+            queue = kiwoom_futures_channel
+            routing_key = 'kiwoom_futures_data'
+
+        if not isinstance(queue, type(None)) and not (routing_key == ''):
+            queue.basic_publish(exchange='', routing_key=routing_key, body=json.dumps(data))
 
 
     def get_ocx_instance(self):
@@ -254,15 +295,7 @@ class Get_Real_Data(QAxWidget):
             }
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
-
-            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-
-            if sCode.strip() in self.stocks_code:
-                # save_kiwoom_stocks_data_to_db(json_data)
-                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
-            else:
-                # save_kiwoom_futures_data_to_db(json_data)
-                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
+            self.send_to_rabbitmq(sCode.strip(), self.kiwoom_stocks_data[sCode.strip()])
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") | (sRealType == "선물호가잔량") :
@@ -559,15 +592,7 @@ class Get_Real_Data(QAxWidget):
             }
 
             self.kiwoom_stocks_data[sCode.strip()].update(update_hoga_kiwoom_dict)
-
-            json_data = json.dumps(self.kiwoom_stocks_data[sCode.strip()])
-
-            if sCode.strip() in self.stocks_code:
-                # save_kiwoom_stocks_data_to_db(json_data)
-                kiwoom_stocks_channel.basic_publish(exchange='', routing_key="kiwoom_stocks_data", body=json_data)
-            else:
-                # save_kiwoom_futures_data_to_db(json_data)
-                kiwoom_futures_channel.basic_publish(exchange='', routing_key="kiwoom_futures_data", body=json_data)
+            self.send_to_rabbitmq(sCode.strip(), self.kiwoom_stocks_data[sCode.strip()])
 
     def get_code_list_by_market(self, market_code):
         '''
