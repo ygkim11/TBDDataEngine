@@ -33,48 +33,60 @@ amqp.connect(rabbitUri, function (err0, connection) {
 
     io.on('connection', (socket) => {
 
-      const kiwoomKospiAStocksQueue = "kiwoom_kospi_a_stocks_data";
-      channel.assertQueue(kiwoomKospiAStocksQueue, { durable: false });
-      channel.consume(
-        kiwoomKospiAStocksQueue,
-        (msg) => {
-          io.emit("kiwoom_kospi_a_stocks", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
-      );
+      // const kiwoomKospiAStocksQueue = "kiwoom_kospi_a_stocks_data";
+      // channel.assertQueue(kiwoomKospiAStocksQueue, { durable: false });
+      // channel.consume(
+      //   kiwoomKospiAStocksQueue,
+      //   (msg) => {
+      //     io.emit("kiwoom_kospi_a_stocks", { data: msg.content });
+      //   },
+      //   {
+      //     noAck: true,
+      //   }
+      // );
 
-      const kiwoomKospiBStocksQueue = "kiwoom_kospi_b_stocks_data";
-      channel.assertQueue(kiwoomKospiBStocksQueue, { durable: false });
-      channel.consume(
-        kiwoomKospiBStocksQueue,
-        (msg) => {
-          io.emit("kiwoom_kospi_b_stocks", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
-      );
+      // const kiwoomKospiBStocksQueue = "kiwoom_kospi_b_stocks_data";
+      // channel.assertQueue(kiwoomKospiBStocksQueue, { durable: false });
+      // channel.consume(
+      //   kiwoomKospiBStocksQueue,
+      //   (msg) => {
+      //     io.emit("kiwoom_kospi_b_stocks", { data: msg.content });
+      //   },
+      //   {
+      //     noAck: true,
+      //   }
+      // );
 
-      const kiwoomKosdaqAStocksQueue = "kiwoom_kosdaq_a_stocks_data";
-      channel.assertQueue(kiwoomKosdaqAStocksQueue, { durable: false });
-      channel.consume(
-        kiwoomKosdaqAStocksQueue,
-        (msg) => {
-          io.emit("kiwoom_kosdaq_a_stocks", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
-      );
+      // const kiwoomKosdaqAStocksQueue = "kiwoom_kosdaq_a_stocks_data";
+      // channel.assertQueue(kiwoomKosdaqAStocksQueue, { durable: false });
+      // channel.consume(
+      //   kiwoomKosdaqAStocksQueue,
+      //   (msg) => {
+      //     io.emit("kiwoom_kosdaq_a_stocks", { data: msg.content });
+      //   },
+      //   {
+      //     noAck: true,
+      //   }
+      // );
 
-      const kiwoomKosdaqBStocksQueue = "kiwoom_kosdaq_b_stocks_data";
-      channel.assertQueue(kiwoomKosdaqBStocksQueue, { durable: false });
+      // const kiwoomKosdaqBStocksQueue = "kiwoom_kosdaq_b_stocks_data";
+      // channel.assertQueue(kiwoomKosdaqBStocksQueue, { durable: false });
+      // channel.consume(
+      //   kiwoomKosdaqBStocksQueue,
+      //   (msg) => {
+      //     io.emit("kiwoom_kosdaq_b_stocks", { data: msg.content });
+      //   },
+      //   {
+      //     noAck: true,
+      //   }
+      // );
+
+      const kiwoomStocksQueue = "kiwoom_stocks_data";
+      channel.assertQueue(kiwoomStocksQueue, { durable: false });
       channel.consume(
-        kiwoomKosdaqBStocksQueue,
+        kiwoomStocksQueue,
         (msg) => {
-          io.emit("kiwoom_kosdaq_b_stocks", { data: msg.content });
+          io.emit("kiwoom_stocks", { data: msg.content });
         },
         {
           noAck: true,
@@ -87,6 +99,18 @@ amqp.connect(rabbitUri, function (err0, connection) {
         kiwoomFuturesQueue,
         (msg) => {
           io.emit("kiwoom_futures", { data: msg.content });
+        },
+        {
+          noAck: true,
+        }
+      );
+
+      const upbitQueue = "upbit_data";
+      channel.assertQueue(upbitQueue, { durable: false });
+      channel.consume(
+        upbitQueue,
+        (msg) => {
+          io.emit("upbit", { data: msg.content });
         },
         {
           noAck: true,
