@@ -73,7 +73,7 @@ def transform_csv_to_arr():
 
 
 if __name__ == '__main__':
-    # backup_upbit_data()
-    # backup_kiwoom_stocks_data()
-    # backup_kiwoom_futures_data()
-    transform_csv_to_arr()
+    backup_upbit_data()
+    backup_kiwoom_stocks_data()
+    backup_kiwoom_futures_data()
+    # transform_csv_to_arr()

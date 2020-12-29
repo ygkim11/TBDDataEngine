@@ -2,7 +2,7 @@ import socketio
 import json
 
 sio = socketio.Client()
-sio.connect('http://192.168.219.100:3001')
+sio.connect('http://192.168.0.32:3001')
 
 @sio.on('kiwoom_stocks')
 def kiwoom_stocks(data):

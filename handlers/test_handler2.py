@@ -2,7 +2,7 @@ import socketio
 import json
 
 sio = socketio.Client()
-sio.connect('http://192.168.219.100:3000')
+sio.connect('http://192.168.0.32:3000')
 
 @sio.on('upbit')
 def upbit_data(data):
