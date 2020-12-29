@@ -1,3 +1,4 @@
+import json
 from kiwoom.db import s, KiwoomStock, KiwoomFutures
 
 def save_kiwoom_stocks_data_to_db(data):
