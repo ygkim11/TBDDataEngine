@@ -12,7 +12,9 @@ import datetime as dt
 import numpy as np
 from kiwoom.save_csv import (
     save_kiwoom_stocks_data_to_csv,
-    save_kiwoom_futures_data_to_csv,
+    save_kiwoom_futures_data_to_csv
+)
+from kiwoom.save_db import (
     save_kiwoom_stocks_data_to_db,
     save_kiwoom_futures_data_to_db
 )
