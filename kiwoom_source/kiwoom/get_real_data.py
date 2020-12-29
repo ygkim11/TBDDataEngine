@@ -42,6 +42,9 @@ conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, port=
 kiwoom_futures_channel = conn.channel()
 kiwoom_futures_channel.queue_declare(queue='kiwoom_futures_data')
 
+kiwoom_stocks_channel = conn.channel()
+kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
+
 kospi_a_channel = conn.channel()
 kospi_a_channel.queue_declare(queue='kiwoom_kospi_a_stocks_data')
 
@@ -183,19 +186,26 @@ class Get_Real_Data(QAxWidget):
         queue = None
         routing_key = ''
 
-        if code in self.kospi_a:
-            queue = kospi_a_channel
-            routing_key = 'kiwoom_kospi_a_stocks_data'
-        elif code in self.kospi_b:
-            queue = kospi_b_channel
-            routing_key = 'kiwoom_kospi_b_stocks_data'
-        elif code in self.kosdaq_a:
-            queue = kosdaq_a_channel
-            routing_key = 'kiwoom_kosdaq_a_stocks_data'
-        elif code in self.kosdaq_b:
-            queue = kosdaq_b_channel
-            routing_key = 'kiwoom_kosdaq_b_stocks_data'
-        elif code in self.futures_code:
+        # if code in self.kospi_a:
+        #     queue = kospi_a_channel
+        #     routing_key = 'kiwoom_kospi_a_stocks_data'
+        # elif code in self.kospi_b:
+        #     queue = kospi_b_channel
+        #     routing_key = 'kiwoom_kospi_b_stocks_data'
+        # elif code in self.kosdaq_a:
+        #     queue = kosdaq_a_channel
+        #     routing_key = 'kiwoom_kosdaq_a_stocks_data'
+        # elif code in self.kosdaq_b:
+        #     queue = kosdaq_b_channel
+        #     routing_key = 'kiwoom_kosdaq_b_stocks_data'
+        # elif code in self.futures_code:
+        #     queue = kiwoom_futures_channel
+        #     routing_key = 'kiwoom_futures_data'
+
+        if code in self.stocks_code:
+            queue = kiwoom_stocks_channel
+            routing_key = 'kiwoom_stocks_data'
+        else:
             queue = kiwoom_futures_channel
             routing_key = 'kiwoom_futures_data'
 
