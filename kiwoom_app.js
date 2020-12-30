@@ -1,7 +1,5 @@
-const app = require("express")();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
 const amqp = require("amqplib/callback_api");
+const kafka = require("kafka-node");
 const dotenv = require("dotenv");
 
 dotenv.config()
@@ -13,117 +11,93 @@ const {
   RABBITMQ_PASSWORD
 } = process.env;
 
-// express default index page rendering
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
+const Producer = kafka.Producer;
+const client = new kafka.KafkaClient({kafkaHost: 'localhost:9092'});
+const producer = new Producer(client);
 
 const rabbitUri = `amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}//`;
 
-// RabbitMQ client
-amqp.connect(rabbitUri, function (err0, connection) {
-  if (err0) {
-    throw err0;
-  }
-
-  connection.createChannel((err1, channel) => {
-    if (err1) {
-      throw err1;
+producer.on('ready', function () {
+  // RabbitMQ client
+  amqp.connect(rabbitUri, function (err0, connection) {
+    if (err0) {
+      throw err0;
     }
 
-    io.on('connection', (socket) => {
+    connection.createChannel((err1, channel) => {
+      if (err1) {
+          throw err1;
+      }
 
-      // const kiwoomKospiAStocksQueue = "kiwoom_kospi_a_stocks_data";
-      // channel.assertQueue(kiwoomKospiAStocksQueue, { durable: false });
-      // channel.consume(
-      //   kiwoomKospiAStocksQueue,
-      //   (msg) => {
-      //     io.emit("kiwoom_kospi_a_stocks", { data: msg.content });
-      //   },
-      //   {
-      //     noAck: true,
-      //   }
-      // );
-
-      // const kiwoomKospiBStocksQueue = "kiwoom_kospi_b_stocks_data";
-      // channel.assertQueue(kiwoomKospiBStocksQueue, { durable: false });
-      // channel.consume(
-      //   kiwoomKospiBStocksQueue,
-      //   (msg) => {
-      //     io.emit("kiwoom_kospi_b_stocks", { data: msg.content });
-      //   },
-      //   {
-      //     noAck: true,
-      //   }
-      // );
-
-      // const kiwoomKosdaqAStocksQueue = "kiwoom_kosdaq_a_stocks_data";
-      // channel.assertQueue(kiwoomKosdaqAStocksQueue, { durable: false });
-      // channel.consume(
-      //   kiwoomKosdaqAStocksQueue,
-      //   (msg) => {
-      //     io.emit("kiwoom_kosdaq_a_stocks", { data: msg.content });
-      //   },
-      //   {
-      //     noAck: true,
-      //   }
-      // );
-
-      // const kiwoomKosdaqBStocksQueue = "kiwoom_kosdaq_b_stocks_data";
-      // channel.assertQueue(kiwoomKosdaqBStocksQueue, { durable: false });
-      // channel.consume(
-      //   kiwoomKosdaqBStocksQueue,
-      //   (msg) => {
-      //     io.emit("kiwoom_kosdaq_b_stocks", { data: msg.content });
-      //   },
-      //   {
-      //     noAck: true,
-      //   }
-      // );
-
-      const kiwoomStocksQueue = "kiwoom_stocks_data";
-      channel.assertQueue(kiwoomStocksQueue, { durable: false });
+      const kiwoomStocksTradeQueue = "kiwoom_stocks_trade_data";
+      channel.assertQueue(kiwoomStocksTradeQueue, { durable: false });
       channel.consume(
-        kiwoomStocksQueue,
-        (msg) => {
-          io.emit("kiwoom_stocks", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
+        kiwoomStocksTradeQueue,
+          (msg) => {
+              producer.send([{
+                topic: 'kiwoom_stocks',
+                key: 'trade',
+                messages: [msg.content],
+                attributes: 1
+              }], () => {});
+          },
+          {
+            noAck: true,
+          }
       );
 
-      const kiwoomFuturesQueue = "kiwoom_futures_data";
-      channel.assertQueue(kiwoomFuturesQueue, { durable: false });
+      const kiwoomFuturesTradeQueue = "kiwoom_futures_trade_data";
+      channel.assertQueue(kiwoomFuturesTradeQueue, { durable: false });
       channel.consume(
-        kiwoomFuturesQueue,
-        (msg) => {
-          io.emit("kiwoom_futures", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
+        kiwoomFuturesTradeQueue,
+          (msg) => {
+              producer.send([{
+                topic: 'kiwoom_futures',
+                key: 'trade',
+                messages: [msg.content],
+                attributes: 1
+              }], () => {});
+          },
+          {
+            noAck: true,
+          }
       );
 
-      const upbitQueue = "upbit_data";
-      channel.assertQueue(upbitQueue, { durable: false });
+      const kiwoomStocksOrderbookQueue = "kiwoom_stocks_orderbook_data";
+      channel.assertQueue(kiwoomStocksOrderbookQueue, { durable: false });
       channel.consume(
-        upbitQueue,
-        (msg) => {
-          io.emit("upbit", { data: msg.content });
-        },
-        {
-          noAck: true,
-        }
+        kiwoomStocksOrderbookQueue,
+          (msg) => {
+              producer.send([{
+                topic: 'kiwoom_stocks',
+                key: 'orderbook',
+                messages: [msg.content],
+                attributes: 1
+              }], () => {});
+          },
+          {
+            noAck: true,
+          }
+      );
+
+      const kiwoomFuturesOrderbookQueue = "kiwoom_futures_orderbook_data";
+      channel.assertQueue(kiwoomFuturesOrderbookQueue, { durable: false });
+      channel.consume(
+        kiwoomFuturesOrderbookQueue,
+          (msg) => {
+              producer.send([{
+                topic: 'kiwoom_futures',
+                key: 'orderbook',
+                messages: [msg.content],
+                attributes: 1
+              }], () => {});
+          },
+          {
+            noAck: true,
+          }
       );
 
     });
 
   });
-
-});
-
-// start server
-http.listen(3001, () => {
-  console.log("Connected at 3001");
 });

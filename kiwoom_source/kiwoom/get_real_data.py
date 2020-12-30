@@ -1,32 +1,18 @@
 import os
-import sys
 import json
+
+import pika
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 from config.errorCode_prac import *
 from PyQt5.QtTest import *
 from config.kiwoomType_prac import *
-import csv
-import datetime as dt
-import numpy as np
-from kiwoom.save_csv import (
-    save_kiwoom_stocks_data_to_csv,
-    save_kiwoom_futures_data_to_csv
-)
-from kiwoom.save_db import (
-    save_kiwoom_stocks_data_to_db,
-    save_kiwoom_futures_data_to_db
-)
 
+import datetime as dt
 from dotenv import load_dotenv
-import pika
 
 load_dotenv()
-
-REMOTE_RABBIT_HOST = os.getenv('REMOTE_RABBITMQ_HOST', 'localhost')
-REMOTE_RABBIT_USER = os.getenv('REMOTE_RABBITMQ_USER', 'guest')
-REMOTE_RABBIT_PASS = os.getenv('REMOTE_RABBITMQ_PASSWORD', 'guest')
 
 RABBIT_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
 RABBIT_PORT = os.getenv('RABBITMQ_PORT', 'localhost')
@@ -36,26 +22,17 @@ RABBIT_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
 credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
 conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
 
-# kiwoom_stocks_channel = conn.channel()
-# kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
+kiwoom_stocks_trade_channel = conn.channel()
+kiwoom_stocks_trade_channel.queue_declare(queue='kiwoom_stocks_trade_data')
 
-kiwoom_futures_channel = conn.channel()
-kiwoom_futures_channel.queue_declare(queue='kiwoom_futures_data')
+kiwoom_futures_trade_channel = conn.channel()
+kiwoom_futures_trade_channel.queue_declare(queue='kiwoom_futures_trade_data')
 
-kiwoom_stocks_channel = conn.channel()
-kiwoom_stocks_channel.queue_declare(queue='kiwoom_stocks_data')
+kiwoom_stocks_orderbook_channel = conn.channel()
+kiwoom_stocks_orderbook_channel.queue_declare(queue='kiwoom_stocks_orderbook_data')
 
-kospi_a_channel = conn.channel()
-kospi_a_channel.queue_declare(queue='kiwoom_kospi_a_stocks_data')
-
-kospi_b_channel = conn.channel()
-kospi_b_channel.queue_declare(queue='kiwoom_kospi_b_stocks_data')
-
-kosdaq_a_channel = conn.channel()
-kosdaq_a_channel.queue_declare(queue='kiwoom_kosdaq_a_stocks_data')
-
-kosdaq_b_channel = conn.channel()
-kosdaq_b_channel.queue_declare(queue='kiwoom_kosdaq_b_stocks_data')
+kiwoom_futures_orderbook_channel = conn.channel()
+kiwoom_futures_orderbook_channel.queue_declare(queue='kiwoom_futures_orderbook_data')
 
 
 class Get_Real_Data(QAxWidget):
@@ -65,12 +42,8 @@ class Get_Real_Data(QAxWidget):
 
         print("#"*6 , "Kiwoom Class initiated" , "#"*6)
 
-        # self.stocks_futures_code = ['101R3000', '101R6000', '101R9000']  # 지수 선물 example
-        # self.sample_stock_code_2 = ["005930", "245620", "170030", "336370"]  # 삼성 , edgc, 현대공업, 두산솔루스
         self.kiwoom_stocks_data = {}
-
         self.all_event_loop = QEventLoop()
-
         self.realType = RealType()
 
         self.get_ocx_instance()
@@ -78,7 +51,6 @@ class Get_Real_Data(QAxWidget):
         self.real_events_slots()
 
         self.signal_login_commConnect()
-        # self.get_account_info()
 
         #스크린번호
         self.screen_real_stock = "5000"
@@ -87,77 +59,9 @@ class Get_Real_Data(QAxWidget):
         self.kospi_list = self.get_code_list_by_market(0)
         self.kosdaq_list = self.get_code_list_by_market(10)
 
-        self.kospi_a = self.kospi_list[:len(self.kospi_list)//2]
-        self.kospi_b = self.kospi_list[len(self.kospi_list)//2:]
-        self.kosdaq_a = self.kospi_list[:len(self.kosdaq_list)//2]
-        self.kosdaq_b = self.kospi_list[len(self.kosdaq_list)//2:]
-
         self.stocks_code = self.kospi_list + self.kosdaq_list
-        self.futures_code = self.get_futures_code_list("") #blank = 전 종목
+        self.futures_code = self.get_futures_code_list("") # blank = 전 종목
         self.stocks_futures_code = self.stocks_code + self.futures_code
-
-        #Base Dict 생성
-        for code in self.stocks_futures_code:
-            self.kiwoom_stocks_data[code] = {
-                'code': None,
-                'trade_date': None,
-                'timestamp': None,
-                'current_price': None,
-                'open_price': None,
-                'high': None,
-                'low': None,
-                'volume': None,
-                'cum_volume': None,
-                'trade_sell_hoga1': None,
-                'trade_buy_hoga1': None,
-                'hoga_date': None,
-                'sell_hoga10': None,
-                'sell_hoga9': None,
-                'sell_hoga8': None,
-                'sell_hoga7': None,
-                'sell_hoga6': None,
-                'sell_hoga5': None,
-                'sell_hoga4': None,
-                'sell_hoga3': None,
-                'sell_hoga2': None,
-                'sell_hoga1': None,
-                'buy_hoga1': None,
-                'buy_hoga2': None,
-                'buy_hoga3': None,
-                'buy_hoga4': None,
-                'buy_hoga5': None,
-                'buy_hoga6': None,
-                'buy_hoga7': None,
-                'buy_hoga8': None,
-                'buy_hoga9': None,
-                'buy_hoga10': None,
-                'sell_hoga10_stack': None,
-                'sell_hoga9_stack': None,
-                'sell_hoga8_stack': None,
-                'sell_hoga7_stack': None,
-                'sell_hoga6_stack': None,
-                'sell_hoga5_stack': None,
-                'sell_hoga4_stack': None,
-                'sell_hoga3_stack': None,
-                'sell_hoga2_stack': None,
-                'sell_hoga1_stack': None,
-                'buy_hoga1_stack': None,
-                'buy_hoga2_stack': None,
-                'buy_hoga3_stack': None,
-                'buy_hoga4_stack': None,
-                'buy_hoga5_stack': None,
-                'buy_hoga6_stack': None,
-                'buy_hoga7_stack': None,
-                'buy_hoga8_stack': None,
-                'buy_hoga9_stack': None,
-                'buy_hoga10_stack': None,
-                'total_buy_hoga_stack': None,
-                'total_sell_hoga_stack': None,
-                'net_buy_hoga_stack': None,
-                'net_sell_hoga_stack': None,
-                'ratio_buy_hoga_stack': None,
-                'ratio_sell_hoga_stack': None
-            }
 
         self.dynamicCall("SetRealReg(QString,QString,QString,QString)", self.screen_start_stop_real, "",
                          self.realType.REALTYPE['장시작시간']['장운영구분'], "0")  # 처음등록할땐 0 이후에 추가는 1!
@@ -171,47 +75,28 @@ class Get_Real_Data(QAxWidget):
                 screen_num += 1
 
             fids = str(self.realType.REALTYPE['주식체결']['체결시간']) + ";" + str(self.realType.REALTYPE['주식호가잔량']['매수호가1'])
-
-            # 실시간 등록은 SetRealReg
-            self.dynamicCall("SetRealReg(QString,QString,QString,QString)", screen_num, code, fids,
-                             "1")  # 처음등록할땐 0 이후에 추가는 1!
-            # self.dynamicCall("SetRealReg(QString,QString,QString,QString)", screen_num, code, fids2,
-            #                  "1")  # 처음등록할땐 0 이후에 추가는 1!
-
+            self.dynamicCall("SetRealReg(QString,QString,QString,QString)", screen_num, code, fids, "1")
             print("실시간 등록 코드: %s, 스크린번호: %s, fid번호: %s" % (code, screen_num, fids))
-
             stock_cnt += 1
 
-    def send_to_rabbitmq(self, code, data):
-        queue = None
-        routing_key = ''
-
-        # if code in self.kospi_a:
-        #     queue = kospi_a_channel
-        #     routing_key = 'kiwoom_kospi_a_stocks_data'
-        # elif code in self.kospi_b:
-        #     queue = kospi_b_channel
-        #     routing_key = 'kiwoom_kospi_b_stocks_data'
-        # elif code in self.kosdaq_a:
-        #     queue = kosdaq_a_channel
-        #     routing_key = 'kiwoom_kosdaq_a_stocks_data'
-        # elif code in self.kosdaq_b:
-        #     queue = kosdaq_b_channel
-        #     routing_key = 'kiwoom_kosdaq_b_stocks_data'
-        # elif code in self.futures_code:
-        #     queue = kiwoom_futures_channel
-        #     routing_key = 'kiwoom_futures_data'
-
+    def send_to_rabbitmq(self, code, data_type, data):
         if code in self.stocks_code:
-            queue = kiwoom_stocks_channel
-            routing_key = 'kiwoom_stocks_data'
+            if data_type == 'trade':
+                queue = kiwoom_stocks_trade_channel
+                routing_key = 'kiwoom_stocks_trade_data'
+            else:
+                queue = kiwoom_stocks_orderbook_channel
+                routing_key = 'kiwoom_stocks_orderbook_data'
         else:
-            queue = kiwoom_futures_channel
-            routing_key = 'kiwoom_futures_data'
+            if data_type == 'trade':
+                queue = kiwoom_futures_trade_channel
+                routing_key = 'kiwoom_futures_trade_data'
+            else:
+                queue = kiwoom_futures_orderbook_channel
+                routing_key = 'kiwoom_futures_orderbook_data'
 
         if not isinstance(queue, type(None)) and not (routing_key == ''):
             queue.basic_publish(exchange='', routing_key=routing_key, body=json.dumps(data))
-
 
     def get_ocx_instance(self):
         self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
@@ -248,9 +133,7 @@ class Get_Real_Data(QAxWidget):
             elif value == "4":
                 print("3시 30분 장 종료!")
 
-
         elif (sRealType == "주식체결") | (sRealType == "선물시세"):
-
             processor = int if sCode in self.stocks_code else float
 
             trade_date = self.dynamicCall("GetCommRealData(QString, int)", sCode,
@@ -288,8 +171,6 @@ class Get_Real_Data(QAxWidget):
                                  self.realType.REALTYPE[sRealType]["저가"])  # -(+)
             low = abs(processor(low))
 
-
-            ###Trade dict update
             update_trade_kiwoom_dict = {
                 'code': sCode.strip(),
                 'trade_date': trade_date.strip(),
@@ -303,9 +184,7 @@ class Get_Real_Data(QAxWidget):
                 'trade_sell_hoga1': trade_sell_hoga1,
                 'trade_buy_hoga1': trade_buy_hoga1
             }
-
-            self.kiwoom_stocks_data[sCode.strip()].update(update_trade_kiwoom_dict)
-            self.send_to_rabbitmq(sCode.strip(), self.kiwoom_stocks_data[sCode.strip()])
+            self.send_to_rabbitmq(sCode.strip(), 'trade', update_trade_kiwoom_dict)
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") | (sRealType == "선물호가잔량") :
@@ -412,8 +291,6 @@ class Get_Real_Data(QAxWidget):
                 buy_hoga10 = None
 
 
-
-
             ####매도호가수량
             sell_hoga1_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["매도호가수량1"])
@@ -461,7 +338,6 @@ class Get_Real_Data(QAxWidget):
                 sell_hoga8_stack = None
                 sell_hoga9_stack = None
                 sell_hoga10_stack = None
-
 
 
             ###매수호가수량
@@ -512,7 +388,6 @@ class Get_Real_Data(QAxWidget):
                 buy_hoga9_stack = None
                 buy_hoga10_stack = None
 
-            
 
             #####etc
             if (sRealType == "주식호가잔량"):
@@ -550,7 +425,6 @@ class Get_Real_Data(QAxWidget):
             ###hoga dict update
             update_hoga_kiwoom_dict = {
                 'code': sCode.strip(),
-                'volume': 0, # 이미 체결 데이터에서 거래량이 보내졌기 때문에 불필요
                 'hoga_date': hoga_date,
                 'timestamp': dt.datetime.now().strftime("%Y%m%d%H%M%S.%f")[:-3],
                 'sell_hoga10': sell_hoga10,
@@ -601,8 +475,7 @@ class Get_Real_Data(QAxWidget):
                 'ratio_sell_hoga_stack': ratio_sell_hoga_stack
             }
 
-            self.kiwoom_stocks_data[sCode.strip()].update(update_hoga_kiwoom_dict)
-            self.send_to_rabbitmq(sCode.strip(), self.kiwoom_stocks_data[sCode.strip()])
+            self.send_to_rabbitmq(sCode.strip(), 'orderbook', update_hoga_kiwoom_dict)
 
     def get_code_list_by_market(self, market_code):
         '''
@@ -664,6 +537,5 @@ class Get_Real_Data(QAxWidget):
         flatten_fu_idx_code = []
         for fu_code in total_fu_idx_code:
             flatten_fu_idx_code = flatten_fu_idx_code + fu_code
-
 
         return flatten_fu_idx_code
