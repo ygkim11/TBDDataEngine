@@ -2,6 +2,7 @@ from kafka_consumer import Kafka
 import datetime
 import json
 import csv
+import time
 
 today = datetime.datetime.now().strftime('%Y-%m-%d')
 
@@ -80,5 +81,7 @@ def save_futures_data_to_csv():
 
 
 if __name__ == '__main__':
-    save_stocks_data_to_csv()
-    save_futures_data_to_csv()
+    wday = time.localtime().tm_wday
+    if wday not in [5, 6]: # 토일 제외
+        save_stocks_data_to_csv()
+        save_futures_data_to_csv()
