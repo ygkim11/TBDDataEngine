@@ -29,75 +29,25 @@ producer.on('ready', function () {
           throw err1;
       }
 
-      const kiwoomStocksTradeQueue = "kiwoom_stocks_trade_data";
-      channel.assertQueue(kiwoomStocksTradeQueue, { durable: false });
-      channel.consume(
-        kiwoomStocksTradeQueue,
-          (msg) => {
-              producer.send([{
-                topic: 'kiwoom_stocks',
-                key: 'trade',
-                messages: [msg.content],
-                attributes: 1
-              }], () => {});
-          },
-          {
-            noAck: true,
-          }
-      );
+      const exchange = 'kiwoom';
+      channel.assertExchange(exchange, 'topic', { durable: false });
+      channel.assertQueue('', { exclusive: true }, function(err2, q) {
+        if (err2) {
+          throw err2;
+        }
+        channel.bindQueue(q.queue, exchange, '#');
+        channel.consume(q.queue, msg => {
+          const [asset, type] = msg.fields.routingKey.split('.');
+          producer.send([{
+            topic: `kiwoom_${asset}`,
+            key: type,
+            message: [msg.content],
+            attributes: 1,
+          }], () => {});
+        }, { noAck: true });
+      }); // channel.assertQueue
 
-      const kiwoomFuturesTradeQueue = "kiwoom_futures_trade_data";
-      channel.assertQueue(kiwoomFuturesTradeQueue, { durable: false });
-      channel.consume(
-        kiwoomFuturesTradeQueue,
-          (msg) => {
-              producer.send([{
-                topic: 'kiwoom_futures',
-                key: 'trade',
-                messages: [msg.content],
-                attributes: 1
-              }], () => {});
-          },
-          {
-            noAck: true,
-          }
-      );
+    }); //connection.createChannel
 
-      const kiwoomStocksOrderbookQueue = "kiwoom_stocks_orderbook_data";
-      channel.assertQueue(kiwoomStocksOrderbookQueue, { durable: false });
-      channel.consume(
-        kiwoomStocksOrderbookQueue,
-          (msg) => {
-              producer.send([{
-                topic: 'kiwoom_stocks',
-                key: 'orderbook',
-                messages: [msg.content],
-                attributes: 1
-              }], () => {});
-          },
-          {
-            noAck: true,
-          }
-      );
-
-      const kiwoomFuturesOrderbookQueue = "kiwoom_futures_orderbook_data";
-      channel.assertQueue(kiwoomFuturesOrderbookQueue, { durable: false });
-      channel.consume(
-        kiwoomFuturesOrderbookQueue,
-          (msg) => {
-              producer.send([{
-                topic: 'kiwoom_futures',
-                key: 'orderbook',
-                messages: [msg.content],
-                attributes: 1
-              }], () => {});
-          },
-          {
-            noAck: true,
-          }
-      );
-
-    });
-
-  });
-});
+  }); // amqp.connect
+}); // producer.on

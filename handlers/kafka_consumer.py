@@ -68,15 +68,10 @@ class Kafka:
         return list(self.consumer.offsets_for_times({self.partition: ts}).values())[0]
 
 
-kafka = Kafka('kiwoom_stocks')
-kafka.set_offset_to_start()
+if __name__ == '__main__':
+    kafka = Kafka('kiwoom_stocks')
+    offset = kafka.get_offset_for_time('2021-01-04 00:00:00')
+    kafka.set_offset(offset.offset)
 
-# kafka.change_topic('my_topic')
-# kafka.set_offset_for_time('2020-12-31 11:59:07')
-
-kafka.set_offset(1300201)
-
-for i in range(10):
-    print(kafka.next())
-
-print(len(kafka))
+    for i in range(100):
+        print(kafka.next())

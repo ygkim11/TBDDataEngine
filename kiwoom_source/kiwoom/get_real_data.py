@@ -1,44 +1,21 @@
-import os
 import json
-
-import pika
+import datetime as dt
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 from config.errorCode_prac import *
 from PyQt5.QtTest import *
+
 from config.kiwoomType_prac import *
-
-import datetime as dt
-from dotenv import load_dotenv
-
-load_dotenv()
-
-RABBIT_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
-RABBIT_PORT = os.getenv('RABBITMQ_PORT', 'localhost')
-RABBIT_USER = os.getenv('RABBITMQ_USER', 'guest')
-RABBIT_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
-
-credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
-conn = pika.BlockingConnection(pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
-
-kiwoom_stocks_trade_channel = conn.channel()
-kiwoom_stocks_trade_channel.queue_declare(queue='kiwoom_stocks_trade_data')
-
-kiwoom_futures_trade_channel = conn.channel()
-kiwoom_futures_trade_channel.queue_declare(queue='kiwoom_futures_trade_data')
-
-kiwoom_stocks_orderbook_channel = conn.channel()
-kiwoom_stocks_orderbook_channel.queue_declare(queue='kiwoom_stocks_orderbook_data')
-
-kiwoom_futures_orderbook_channel = conn.channel()
-kiwoom_futures_orderbook_channel.queue_declare(queue='kiwoom_futures_orderbook_data')
+from kiwoom.process import *
 
 
 class Get_Real_Data(QAxWidget):
-    def __init__(self):
-
+    def __init__(self, queues, processes):
         super().__init__()
+        self.queues = queues
+        self.processes = processes
+        self.q_idx = 0
 
         print("#"*6 , "Kiwoom Class initiated" , "#"*6)
 
@@ -79,24 +56,15 @@ class Get_Real_Data(QAxWidget):
             print("실시간 등록 코드: %s, 스크린번호: %s, fid번호: %s" % (code, screen_num, fids))
             stock_cnt += 1
 
-    def send_to_rabbitmq(self, code, data_type, data):
-        if code in self.stocks_code:
-            if data_type == 'trade':
-                queue = kiwoom_stocks_trade_channel
-                routing_key = 'kiwoom_stocks_trade_data'
-            else:
-                queue = kiwoom_stocks_orderbook_channel
-                routing_key = 'kiwoom_stocks_orderbook_data'
-        else:
-            if data_type == 'trade':
-                queue = kiwoom_futures_trade_channel
-                routing_key = 'kiwoom_futures_trade_data'
-            else:
-                queue = kiwoom_futures_orderbook_channel
-                routing_key = 'kiwoom_futures_orderbook_data'
+    def send_to_process(self, code, data_type, data):
+        asset_type = 'stocks' if code in self.stocks_code else 'futures'
+        data['routing_key'] = f'{asset_type}.{data_type}'
+        self.queues[self.q_idx].put(data)
 
-        if not isinstance(queue, type(None)) and not (routing_key == ''):
-            queue.basic_publish(exchange='', routing_key=routing_key, body=json.dumps(data))
+        if self.q_idx == len(self.queues) - 1:
+            self.q_idx = 0
+        else:
+            self.q_idx += 1
 
     def get_ocx_instance(self):
         self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
@@ -132,6 +100,8 @@ class Get_Real_Data(QAxWidget):
                 print("3시 20분!!, 동시호가")
             elif value == "4":
                 print("3시 30분 장 종료!")
+                send_to_queues(self.queues, 'DONE')
+                join_processes(self.processes)
 
         elif (sRealType == "주식체결") | (sRealType == "선물시세"):
             processor = int if sCode in self.stocks_code else float
@@ -184,7 +154,7 @@ class Get_Real_Data(QAxWidget):
                 'trade_sell_hoga1': trade_sell_hoga1,
                 'trade_buy_hoga1': trade_buy_hoga1
             }
-            self.send_to_rabbitmq(sCode.strip(), 'trade', update_trade_kiwoom_dict)
+            self.send_to_process(sCode.strip(), 'trade', update_trade_kiwoom_dict)
 
 
         elif (sRealType == "주식호가잔량") | (sRealType == "주식선물호가잔량") | (sRealType == "선물호가잔량") :
@@ -193,7 +163,7 @@ class Get_Real_Data(QAxWidget):
 
             processor = int if sCode in self.stocks_code else float
 
-            ####매도호가
+            #### 매도호가
             sell_hoga1 = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["매도호가1"])
             sell_hoga1 = abs(processor(sell_hoga1))
@@ -242,7 +212,7 @@ class Get_Real_Data(QAxWidget):
                 sell_hoga10 = None
             
             
-            ###매수호가
+            ### 매수호가
             buy_hoga1 = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                                 self.realType.REALTYPE[sRealType]["매수호가1"])
             buy_hoga1 = abs(processor(buy_hoga1))
@@ -291,7 +261,7 @@ class Get_Real_Data(QAxWidget):
                 buy_hoga10 = None
 
 
-            ####매도호가수량
+            #### 매도호가수량
             sell_hoga1_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                  self.realType.REALTYPE[sRealType]["매도호가수량1"])
             sell_hoga1_stack = abs(processor(sell_hoga1_stack))
@@ -340,7 +310,7 @@ class Get_Real_Data(QAxWidget):
                 sell_hoga10_stack = None
 
 
-            ###매수호가수량
+            ### 매수호가수량
             buy_hoga1_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                                 self.realType.REALTYPE[sRealType]["매수호가수량1"])
             buy_hoga1_stack = abs(processor(buy_hoga1_stack))
@@ -389,7 +359,7 @@ class Get_Real_Data(QAxWidget):
                 buy_hoga10_stack = None
 
 
-            #####etc
+            ##### etc
             if (sRealType == "주식호가잔량"):
                 total_buy_hoga_stack = self.dynamicCall("GetCommRealData(QString, int)", sCode,
                                                     self.realType.REALTYPE[sRealType]["매수호가총잔량"])
@@ -475,7 +445,7 @@ class Get_Real_Data(QAxWidget):
                 'ratio_sell_hoga_stack': ratio_sell_hoga_stack
             }
 
-            self.send_to_rabbitmq(sCode.strip(), 'orderbook', update_hoga_kiwoom_dict)
+            self.send_to_process(sCode.strip(), 'orderbook', update_hoga_kiwoom_dict)
 
     def get_code_list_by_market(self, market_code):
         '''
