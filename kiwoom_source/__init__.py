@@ -3,6 +3,7 @@ import sys
 import json
 import pika
 from PyQt5.QtWidgets import *
+from pykafka import KafkaClient
 
 from kiwoom.get_real_data import *
 from kiwoom.process import *
@@ -20,21 +21,33 @@ RABBIT_PASS = os.getenv('RABBITMQ_PASSWORD', 'guest')
 # parameters = pika.URLParameters(rabbit_uri)
 
 def worker(id, q):
-    credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
-    channel = connection.channel()
-    channel.exchange_declare(exchange='kiwoom', exchange_type='topic')
-    print(f'Started RabbitMQ publisher #{id}')
+    print(f'Started worker process {id}')
+    client = KafkaClient(hosts='127.0.0.1:9092')
+    topic = client.topics['kiwoom-data']
+    producer = topic.get_producer(delivery_reports=False)
 
     while True:
         val = q.get()
         if val == 'DONE':
             break
         routing_key = val['routing_key']
-        del val['routing_key']
-        channel.basic_publish(exchange='kiwoom', routing_key=routing_key, body=json.dumps(val))
-    connection.close()
+        producer.produce(json.dumps(val), partition_key=routing_key)
+
+    # credentials = pika.PlainCredentials(username=RABBIT_USER, password=RABBIT_PASS)
+    # connection = pika.BlockingConnection(
+    #     pika.ConnectionParameters(host=RABBIT_HOST, port=RABBIT_PORT, credentials=credentials))
+    # channel = connection.channel()
+    # channel.exchange_declare(exchange='kiwoom', exchange_type='topic')
+    # print(f'Started RabbitMQ publisher #{id}')
+    #
+    # while True:
+    #     val = q.get()
+    #     if val == 'DONE':
+    #         break
+    #     routing_key = val['routing_key']
+    #     del val['routing_key']
+    #     channel.basic_publish(exchange='kiwoom', routing_key=routing_key, body=json.dumps(val))
+    # connection.close()
 
 class Main():
     def __init__(self, queues, processes):
@@ -45,7 +58,7 @@ class Main():
 
 
 if __name__ == '__main__':
-    p_cnt = 5
+    p_cnt = 3
     q = create_queues(p_cnt)
     p = create_processes(q, worker)
     start_processes(p)
